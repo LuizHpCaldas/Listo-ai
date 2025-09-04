@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   FlatList,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Plus, Check, X, ArrowLeft } from "lucide-react-native";
@@ -29,16 +30,13 @@ const ListDetailScreen: React.FC = () => {
 
   if (!list) {
     return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: colors.bg,
-        }}
-      >
-        <Text style={{ color: colors.text }}>Lista não encontrada</Text>
-      </View>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
+        <View
+          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+        >
+          <Text style={{ color: colors.text }}>Lista não encontrada</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -102,7 +100,10 @@ const ListDetailScreen: React.FC = () => {
   const totalItems = list.items.length;
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: colors.bg }}
+      edges={["bottom"]}
+    >
       {/* Header */}
       <View
         style={{
@@ -242,7 +243,7 @@ const ListDetailScreen: React.FC = () => {
           </View>
         }
       />
-    </View>
+    </SafeAreaView>
   );
 };
 
