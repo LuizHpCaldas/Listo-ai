@@ -4,17 +4,24 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  ScrollView,
   FlatList,
 } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useRoute, useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Plus, Check, X, ArrowLeft } from "lucide-react-native";
 import { useApp } from "../../contexts/AppContext";
+import { RootStackParamList } from "../../types/navigation";
 import { colors } from "../../constants/colors";
 
+type ListDetailScreenNavigationProp = NativeStackNavigationProp<
+  RootStackParamList,
+  "ListDetail"
+>;
+
 const ListDetailScreen: React.FC = () => {
-  const router = useRouter();
-  const { listId } = useLocalSearchParams();
+  const navigation = useNavigation<ListDetailScreenNavigationProp>();
+  const route = useRoute();
+  const { listId } = route.params as { listId: string };
   const { userData, setUserData } = useApp();
   const [newProductName, setNewProductName] = useState("");
 
@@ -108,7 +115,7 @@ const ListDetailScreen: React.FC = () => {
         }}
       >
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={() => navigation.goBack()}
           style={{ marginRight: 16 }}
         >
           <ArrowLeft color={colors.text} size={24} />

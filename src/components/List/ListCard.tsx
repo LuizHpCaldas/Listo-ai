@@ -95,7 +95,12 @@ const ListCard: React.FC<ListCardProps> = ({
         </View>
 
         {showDelete && !isCompleted && (
-          <TouchableOpacity onPress={onDelete}>
+          <TouchableOpacity
+            onPress={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+          >
             <Trash2 color={colors.danger} size={20} />
           </TouchableOpacity>
         )}

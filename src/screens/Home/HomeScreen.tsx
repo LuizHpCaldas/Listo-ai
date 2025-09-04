@@ -2,19 +2,29 @@ import React, { useState } from "react";
 import {
   View,
   Text,
-  ScrollView,
   TouchableOpacity,
   TextInput,
   FlatList,
 } from "react-native";
 import { Plus, Home, Store, BarChart3 } from "lucide-react-native";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useApp } from "../../contexts/AppContext";
 import { ShoppingList } from "../../types";
+import { RootStackParamList } from "../../types/navigation";
 import BudgetDisplay from "../../components/UI/BudgetDisplay";
 import ListCard from "../../components/List/ListCard";
+import Logo from "../../components/UI/Logo";
 import { colors } from "../../constants/colors";
 
+// Definir o tipo de navegação
+type HomeScreenNavigationProp = NativeStackNavigationProp<
+  RootStackParamList,
+  "Home"
+>;
+
 const HomeScreen: React.FC = () => {
+  const navigation = useNavigation<HomeScreenNavigationProp>();
   const { userData, setUserData, activeList, setActiveList, mode, setMode } =
     useApp();
   const [newListName, setNewListName] = useState("");
@@ -38,6 +48,9 @@ const HomeScreen: React.FC = () => {
       setNewListName("");
       setShowNewList(false);
       setActiveList(newList.id);
+
+      // Navegar para a tela de detalhes da nova lista
+      navigation.navigate("ListDetail", { listId: newList.id });
     }
   };
 
@@ -58,6 +71,20 @@ const HomeScreen: React.FC = () => {
     }
   };
 
+  const handleListPress = (listId: string) => {
+    setActiveList(listId);
+    navigation.navigate("ListDetail", { listId });
+  };
+
+  const handleModePress = (newMode: "home" | "market" | "analytics") => {
+    setMode(newMode);
+
+    // Se for analytics, navegar para a tela de analytics
+    if (newMode === "analytics") {
+      navigation.navigate("Analytics");
+    }
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, padding: 16 }}>
       {/* Header */}
@@ -69,13 +96,16 @@ const HomeScreen: React.FC = () => {
           marginBottom: 16,
         }}
       >
-        <View>
-          <Text
-            style={{ color: colors.text, fontSize: 24, fontWeight: "bold" }}
-          >
-            Listo.ai
-          </Text>
-          <Text style={{ color: colors.muted }}>Smart Shopping Lists</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <Logo size={40} />
+          <View>
+            <Text
+              style={{ color: colors.text, fontSize: 24, fontWeight: "bold" }}
+            >
+              Listo
+            </Text>
+            <Text style={{ color: colors.muted }}>Smart Shopping Lists</Text>
+          </View>
         </View>
 
         <View
@@ -87,7 +117,7 @@ const HomeScreen: React.FC = () => {
           }}
         >
           <TouchableOpacity
-            onPress={() => setMode("home")}
+            onPress={() => handleModePress("home")}
             style={{
               padding: 8,
               borderRadius: 8,
@@ -109,7 +139,7 @@ const HomeScreen: React.FC = () => {
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => setMode("market")}
+            onPress={() => handleModePress("market")}
             style={{
               padding: 8,
               borderRadius: 8,
@@ -135,7 +165,7 @@ const HomeScreen: React.FC = () => {
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => setMode("analytics")}
+            onPress={() => handleModePress("analytics")}
             style={{
               padding: 8,
               borderRadius: 8,
@@ -209,6 +239,7 @@ const HomeScreen: React.FC = () => {
               color: colors.text,
               marginBottom: 12,
             }}
+            onSubmitEditing={createList}
           />
           <View
             style={{
@@ -236,8 +267,8 @@ const HomeScreen: React.FC = () => {
           <ListCard
             list={item}
             isActive={activeList === item.id}
+            onPress={() => handleListPress(item.id)}
             onDelete={() => deleteList(item.id)}
-            onPress={() => setActiveList(item.id)}
           />
         )}
         ListEmptyComponent={
