@@ -12,6 +12,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Plus, Check, X, ArrowLeft, Store, Edit3 } from "lucide-react-native";
 import { useApp } from "../../contexts/AppContext";
 import { RootStackParamList } from "../../types/navigation";
+import { ShoppingList, Product } from "../../types";
 import { colors } from "../../constants/colors";
 import ProductEditModal from "../../components/Product/ProductEditModal";
 
@@ -29,7 +30,9 @@ const ListDetailScreen: React.FC = () => {
   const [editingProduct, setEditingProduct] = useState<string | null>(null);
   const [editModalVisible, setEditModalVisible] = useState(false);
 
-  const list = userData.shoppingHistory.find((l) => l.id === listId);
+  const list = userData.shoppingHistory.find(
+    (l: ShoppingList) => l.id === listId
+  );
 
   if (!list) {
     return (
@@ -45,11 +48,11 @@ const ListDetailScreen: React.FC = () => {
 
   const addProduct = () => {
     if (newProductName.trim()) {
-      const newItem = {
+      const newItem: Product = {
         id: Date.now().toString(),
         name: newProductName.trim(),
         price: undefined,
-        quantity: 1, // Quantidade padrão
+        quantity: 1,
         checked: false,
         addedAt: new Date().toISOString(),
       };
@@ -64,19 +67,22 @@ const ListDetailScreen: React.FC = () => {
     }
   };
 
-  const updateList = (updatedList: any) => {
+  const updateList = (updatedList: ShoppingList) => {
     // Calcular total gasto
-    const totalSpent = updatedList.items.reduce((total: number, item: any) => {
-      return item.checked && item.price
-        ? total + item.price * item.quantity
-        : total;
-    }, 0);
+    const totalSpent = updatedList.items.reduce(
+      (total: number, item: Product) => {
+        return item.checked && item.price
+          ? total + item.price * item.quantity
+          : total;
+      },
+      0
+    );
 
     updatedList.totalSpent = totalSpent;
 
     setUserData({
       ...userData,
-      shoppingHistory: userData.shoppingHistory.map((l) =>
+      shoppingHistory: userData.shoppingHistory.map((l: ShoppingList) =>
         l.id === listId ? updatedList : l
       ),
     });
@@ -85,7 +91,7 @@ const ListDetailScreen: React.FC = () => {
   const toggleItem = (itemId: string) => {
     const updatedList = {
       ...list,
-      items: list.items.map((item) =>
+      items: list.items.map((item: Product) =>
         item.id === itemId ? { ...item, checked: !item.checked } : item
       ),
     };
@@ -96,7 +102,7 @@ const ListDetailScreen: React.FC = () => {
   const removeItem = (itemId: string) => {
     const updatedList = {
       ...list,
-      items: list.items.filter((item) => item.id !== itemId),
+      items: list.items.filter((item: Product) => item.id !== itemId),
     };
 
     updateList(updatedList);
@@ -111,7 +117,7 @@ const ListDetailScreen: React.FC = () => {
     if (editingProduct) {
       const updatedList = {
         ...list,
-        items: list.items.map((item) =>
+        items: list.items.map((item: Product) =>
           item.id === editingProduct
             ? { ...item, price, quantity, checked: true }
             : item
@@ -124,10 +130,10 @@ const ListDetailScreen: React.FC = () => {
     }
   };
 
-  const itemsInCart = list.items.filter((item) => item.checked).length;
+  const itemsInCart = list.items.filter((item: Product) => item.checked).length;
   const totalItems = list.items.length;
   const editingProductData = list.items.find(
-    (item) => item.id === editingProduct
+    (item: Product) => item.id === editingProduct
   );
 
   return (
@@ -240,9 +246,9 @@ const ListDetailScreen: React.FC = () => {
       {/* Lista de produtos */}
       <FlatList
         data={list.items}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item: Product) => item.id}
         contentContainerStyle={{ padding: 16 }}
-        renderItem={({ item }) => (
+        renderItem={({ item }: { item: Product }) => (
           <View
             style={{
               flexDirection: "row",
