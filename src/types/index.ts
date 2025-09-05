@@ -2,7 +2,7 @@ export interface Product {
   id: string;
   name: string;
   price?: number;
-  quantity: number; // Nova propriedade
+  quantity: number;
   checked: boolean;
   addedAt: string;
   purchasedAt?: string;
@@ -18,5 +18,18 @@ export interface ShoppingList {
   totalSpent: number;
 }
 
-// Adicione também um tipo para o modo de edição
+export interface BudgetHistory {
+  month: string;
+  budget: number;
+  spent: number;
+}
+
+export interface UserData {
+  monthlyBudget: number;
+  shoppingHistory: ShoppingList[];
+  budgetHistory: BudgetHistory[];
+  lastResetDate: string;
+}
+
+export type AppMode = "home" | "market" | "analytics";
 export type EditMode = "price" | "quantity" | null;

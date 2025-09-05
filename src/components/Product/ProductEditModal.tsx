@@ -62,7 +62,6 @@ const ProductEditModal: React.FC<ProductEditModalProps> = ({
             {productName}
           </Text>
 
-          {/* Preço */}
           <View style={{ marginBottom: 16 }}>
             <Text style={{ color: colors.muted, marginBottom: 8 }}>
               Preço unitário
@@ -88,7 +87,6 @@ const ProductEditModal: React.FC<ProductEditModalProps> = ({
             </View>
           </View>
 
-          {/* Quantidade */}
           <View style={{ marginBottom: 20 }}>
             <Text style={{ color: colors.muted, marginBottom: 8 }}>
               Quantidade
@@ -114,7 +112,6 @@ const ProductEditModal: React.FC<ProductEditModalProps> = ({
             </View>
           </View>
 
-          {/* Total */}
           <View
             style={{
               backgroundColor: colors.primary + "20",
@@ -134,7 +131,6 @@ const ProductEditModal: React.FC<ProductEditModalProps> = ({
             </Text>
           </View>
 
-          {/* Botões */}
           <View
             style={{ flexDirection: "row", justifyContent: "space-between" }}
           >

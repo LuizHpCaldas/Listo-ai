@@ -9,7 +9,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { Plus, Home, Store, BarChart3 } from "lucide-react-native";
+import { Plus, Home, Store, BarChart3, History } from "lucide-react-native";
 import { useApp } from "../../contexts/AppContext";
 import { ShoppingList } from "../../types";
 import { RootStackParamList } from "../../types/navigation";
@@ -25,8 +25,7 @@ type HomeScreenNavigationProp = NativeStackNavigationProp<
 
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
-  const { userData, setUserData, activeList, setActiveList, mode, setMode } =
-    useApp();
+  const { state, dispatch } = useApp();
   const [newListName, setNewListName] = useState("");
   const [showNewList, setShowNewList] = useState(false);
 
@@ -40,64 +39,66 @@ const HomeScreen: React.FC = () => {
         totalSpent: 0,
       };
 
-      setUserData({
-        ...userData,
-        shoppingHistory: [newList, ...userData.shoppingHistory],
-      });
+      const updatedUser = {
+        ...state.user!,
+        shoppingHistory: [newList, ...state.user!.shoppingHistory],
+      };
+
+      dispatch({ type: "SET_USER", payload: updatedUser });
+      dispatch({ type: "ADD_LIST", payload: newList });
 
       setNewListName("");
       setShowNewList(false);
-      setActiveList(newList.id);
+      dispatch({ type: "SET_ACTIVE_LIST", payload: newList.id });
 
-      if (mode === "market") {
+      if (state.mode === "market") {
         navigation.navigate("ListDetail", { listId: newList.id });
       }
     }
   };
 
   const deleteList = (listId: string) => {
-    setUserData({
-      ...userData,
-      shoppingHistory: userData.shoppingHistory.filter(
+    const updatedUser = {
+      ...state.user!,
+      shoppingHistory: state.user!.shoppingHistory.filter(
         (list: ShoppingList) => list.id !== listId
       ),
-    });
+    };
 
-    if (activeList === listId) {
-      setActiveList(
-        userData.shoppingHistory.length > 1
-          ? userData.shoppingHistory[0].id
-          : null
-      );
+    dispatch({ type: "SET_USER", payload: updatedUser });
+    dispatch({ type: "DELETE_LIST", payload: listId });
+
+    if (state.activeList === listId) {
+      dispatch({
+        type: "SET_ACTIVE_LIST",
+        payload: state.lists.length > 1 ? state.lists[0].id : null,
+      });
     }
   };
 
   const handleListPress = (listId: string) => {
-    setActiveList(listId);
+    dispatch({ type: "SET_ACTIVE_LIST", payload: listId });
 
-    if (mode === "market") {
+    if (state.mode === "market") {
       navigation.navigate("ListDetail", { listId });
     }
   };
 
   const handleModePress = (newMode: "home" | "market" | "analytics") => {
-    setMode(newMode);
+    dispatch({ type: "SET_MODE", payload: newMode });
 
     if (newMode === "analytics") {
       navigation.navigate("Analytics");
-    } else if (newMode === "market" && activeList) {
-      navigation.navigate("ListDetail", { listId: activeList });
+    } else if (newMode === "market" && state.activeList) {
+      navigation.navigate("ListDetail", { listId: state.activeList });
     }
   };
 
-  const totalSpent = userData.shoppingHistory.reduce(
-    (total: number, list: ShoppingList) => {
-      return total + list.totalSpent;
-    },
-    0
-  );
+  const totalSpent = state.lists.reduce((total: number, list: ShoppingList) => {
+    return total + list.totalSpent;
+  }, 0);
 
-  const remaining = userData.monthlyBudget - totalSpent;
+  const remaining = state.budget - totalSpent;
 
   return (
     <SafeAreaView
@@ -105,7 +106,6 @@ const HomeScreen: React.FC = () => {
       edges={["bottom"]}
     >
       <View style={{ flex: 1, padding: 16 }}>
-        {/* Header */}
         <View
           style={{
             flexDirection: "row",
@@ -118,92 +118,108 @@ const HomeScreen: React.FC = () => {
             <Logo size={42} showText={true} />
           </View>
 
-          <View
-            style={{
-              flexDirection: "row",
-              backgroundColor: colors.border,
-              borderRadius: 12,
-              padding: 4,
-            }}
-          >
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <TouchableOpacity
-              onPress={() => handleModePress("home")}
+              onPress={() => navigation.navigate("BudgetHistory")}
               style={{
+                backgroundColor: colors.primary,
                 padding: 8,
                 borderRadius: 8,
-                backgroundColor:
-                  mode === "home" ? colors.primary : "transparent",
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 4,
               }}
             >
-              <Home size={16} color={mode === "home" ? "#fff" : colors.muted} />
-              <Text
-                style={{
-                  color: mode === "home" ? "#fff" : colors.muted,
-                  fontSize: 12,
-                }}
-              >
-                Casa
-              </Text>
+              <History color="#fff" size={20} />
             </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={() => handleModePress("market")}
+            <View
               style={{
-                padding: 8,
-                borderRadius: 8,
-                backgroundColor:
-                  mode === "market" ? colors.primary : "transparent",
                 flexDirection: "row",
-                alignItems: "center",
-                gap: 4,
+                backgroundColor: colors.border,
+                borderRadius: 12,
+                padding: 4,
               }}
             >
-              <Store
-                size={16}
-                color={mode === "market" ? "#fff" : colors.muted}
-              />
-              <Text
+              <TouchableOpacity
+                onPress={() => handleModePress("home")}
                 style={{
-                  color: mode === "market" ? "#fff" : colors.muted,
-                  fontSize: 12,
+                  padding: 8,
+                  borderRadius: 8,
+                  backgroundColor:
+                    state.mode === "home" ? colors.primary : "transparent",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 4,
                 }}
               >
-                Mercado
-              </Text>
-            </TouchableOpacity>
+                <Home
+                  size={16}
+                  color={state.mode === "home" ? "#fff" : colors.muted}
+                />
+                <Text
+                  style={{
+                    color: state.mode === "home" ? "#fff" : colors.muted,
+                    fontSize: 12,
+                  }}
+                >
+                  Casa
+                </Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={() => handleModePress("analytics")}
-              style={{
-                padding: 8,
-                borderRadius: 8,
-                backgroundColor:
-                  mode === "analytics" ? colors.primary : "transparent",
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 4,
-              }}
-            >
-              <BarChart3
-                size={16}
-                color={mode === "analytics" ? "#fff" : colors.muted}
-              />
-              <Text
+              <TouchableOpacity
+                onPress={() => handleModePress("market")}
                 style={{
-                  color: mode === "analytics" ? "#fff" : colors.muted,
-                  fontSize: 12,
+                  padding: 8,
+                  borderRadius: 8,
+                  backgroundColor:
+                    state.mode === "market" ? colors.primary : "transparent",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 4,
                 }}
               >
-                Análise
-              </Text>
-            </TouchableOpacity>
+                <Store
+                  size={16}
+                  color={state.mode === "market" ? "#fff" : colors.muted}
+                />
+                <Text
+                  style={{
+                    color: state.mode === "market" ? "#fff" : colors.muted,
+                    fontSize: 12,
+                  }}
+                >
+                  Mercado
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => handleModePress("analytics")}
+                style={{
+                  padding: 8,
+                  borderRadius: 8,
+                  backgroundColor:
+                    state.mode === "analytics" ? colors.primary : "transparent",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 4,
+                }}
+              >
+                <BarChart3
+                  size={16}
+                  color={state.mode === "analytics" ? "#fff" : colors.muted}
+                />
+                <Text
+                  style={{
+                    color: state.mode === "analytics" ? "#fff" : colors.muted,
+                    fontSize: 12,
+                  }}
+                >
+                  Análise
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 
-        {mode === "market" && (
+        {state.mode === "market" && (
           <View
             style={{
               backgroundColor: colors.warning + "20",
@@ -242,7 +258,7 @@ const HomeScreen: React.FC = () => {
           <Text style={{ color: colors.text, fontSize: 18, fontWeight: "600" }}>
             Minhas Listas
           </Text>
-          {mode === "home" && (
+          {state.mode === "home" && (
             <TouchableOpacity
               onPress={() => setShowNewList(true)}
               style={{
@@ -256,7 +272,7 @@ const HomeScreen: React.FC = () => {
           )}
         </View>
 
-        {showNewList && mode === "home" && (
+        {showNewList && state.mode === "home" && (
           <View
             style={{
               backgroundColor: colors.card,
@@ -299,15 +315,15 @@ const HomeScreen: React.FC = () => {
         )}
 
         <FlatList
-          data={userData.shoppingHistory}
+          data={state.lists}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <ListCard
               list={item}
-              isActive={activeList === item.id}
+              isActive={state.activeList === item.id}
               onPress={() => handleListPress(item.id)}
               onDelete={() => deleteList(item.id)}
-              showDelete={mode === "home"}
+              showDelete={state.mode === "home"}
             />
           )}
           ListEmptyComponent={
@@ -319,7 +335,7 @@ const HomeScreen: React.FC = () => {
               }}
             >
               <Text style={{ color: colors.muted, textAlign: "center" }}>
-                {mode === "market"
+                {state.mode === "market"
                   ? "Nenhuma lista disponível. Volte para o modo Casa para criar listas."
                   : "Nenhuma lista criada ainda. Clique no + para criar sua primeira lista."}
               </Text>
@@ -367,14 +383,9 @@ const HomeScreen: React.FC = () => {
             <View
               style={{
                 height: "100%",
-                width: `${Math.min(
-                  (totalSpent / userData.monthlyBudget) * 100,
-                  100
-                )}%`,
+                width: `${Math.min((totalSpent / state.budget) * 100, 100)}%`,
                 backgroundColor:
-                  totalSpent > userData.monthlyBudget
-                    ? colors.danger
-                    : colors.success,
+                  totalSpent > state.budget ? colors.danger : colors.success,
               }}
             />
           </View>
@@ -387,7 +398,7 @@ const HomeScreen: React.FC = () => {
             }}
           >
             Gasto: R$ {totalSpent.toFixed(2)} / Orçamento: R${" "}
-            {userData.monthlyBudget.toFixed(2)}
+            {state.budget.toFixed(2)}
           </Text>
         </View>
       </View>

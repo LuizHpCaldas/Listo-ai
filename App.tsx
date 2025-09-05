@@ -1,10 +1,11 @@
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AppProvider } from "./src/contexts/AppContext";
 import HomeScreen from "./src/screens/Home/HomeScreen";
 import ListDetailScreen from "./src/screens/ListDetail/ListDetailScreen";
 import AnalyticsScreen from "./src/screens/Analytics/AnalyticsScreen";
+import BudgetHistoryScreen from "./src/screens/BudgetHistory/BudgetHistoryScreen";
 import { colors } from "./src/constants/colors";
 
 const Stack = createNativeStackNavigator();
@@ -22,6 +23,10 @@ export default function App() {
               <Stack.Screen name="Home" component={HomeScreen} />
               <Stack.Screen name="ListDetail" component={ListDetailScreen} />
               <Stack.Screen name="Analytics" component={AnalyticsScreen} />
+              <Stack.Screen
+                name="BudgetHistory"
+                component={BudgetHistoryScreen}
+              />
             </Stack.Navigator>
           </NavigationContainer>
         </AppProvider>

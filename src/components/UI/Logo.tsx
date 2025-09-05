@@ -11,7 +11,6 @@ interface LogoProps {
 const Logo: React.FC<LogoProps> = ({ size = 40, showText = false }) => {
   return (
     <View style={{ alignItems: "center", flexDirection: "row", gap: 12 }}>
-      {/* Logo com sacola e check */}
       <View
         style={{
           width: size,
@@ -28,10 +27,8 @@ const Logo: React.FC<LogoProps> = ({ size = 40, showText = false }) => {
           elevation: 5,
         }}
       >
-        {/* Sacola de compras */}
         <ShoppingBag size={size * 0.6} color="#fff" strokeWidth={2} />
 
-        {/* Checkmark verde */}
         <View
           style={{
             position: "absolute",
@@ -46,28 +43,7 @@ const Logo: React.FC<LogoProps> = ({ size = 40, showText = false }) => {
         </View>
       </View>
 
-      {/* Texto da logo (opcional) */}
-      {showText && (
-        <View>
-          <Text
-            style={{
-              color: colors.text,
-              fontSize: size * 0.6,
-              fontWeight: "bold",
-            }}
-          >
-            Listo
-          </Text>
-          <Text
-            style={{
-              color: colors.muted,
-              fontSize: size * 0.3,
-            }}
-          >
-            Smart Shopping
-          </Text>
-        </View>
-      )}
+      {showText && <View></View>}
     </View>
   );
 };

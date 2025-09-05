@@ -1,10 +1,9 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { UserData, ShoppingList } from "../types";
+import { UserData } from "../types";
 
 const USER_DATA_KEY = "@user_data";
 
 export const storage = {
-  // Salvar dados do usuário
   saveUserData: async (userData: UserData): Promise<void> => {
     try {
       const jsonValue = JSON.stringify(userData);
@@ -14,7 +13,6 @@ export const storage = {
     }
   },
 
-  // Carregar dados do usuário
   getUserData: async (): Promise<UserData | null> => {
     try {
       const jsonValue = await AsyncStorage.getItem(USER_DATA_KEY);
@@ -25,7 +23,6 @@ export const storage = {
     }
   },
 
-  // Limpar todos os dados
   clear: async (): Promise<void> => {
     try {
       await AsyncStorage.clear();

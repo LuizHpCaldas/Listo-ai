@@ -1,28 +1,32 @@
-import React from "react";
+import React, { useState } from "react";
 import { View, Text, TouchableOpacity, TextInput } from "react-native";
 import { Target, Edit2, Check, X } from "lucide-react-native";
 import { useApp } from "../../contexts/AppContext";
 import { colors } from "../../constants/colors";
 
 const BudgetDisplay: React.FC = () => {
-  const { userData, setUserData } = useApp();
-  const [editingBudget, setEditingBudget] = React.useState(false);
-  const [newBudget, setNewBudget] = React.useState(
-    userData.monthlyBudget.toString()
+  const { state, dispatch } = useApp();
+  const [editingBudget, setEditingBudget] = useState(false);
+  const [newBudget, setNewBudget] = useState(state.budget.toString());
+
+  const totalSpent = state.lists.reduce(
+    (total, list) => total + list.totalSpent,
+    0
   );
-
-  const totalSpent = userData.shoppingHistory.reduce((total, list) => {
-    return total + list.totalSpent;
-  }, 0);
-
-  const remaining = userData.monthlyBudget - totalSpent;
+  const remaining = state.budget - totalSpent;
 
   const updateBudget = () => {
     const budgetValue = parseFloat(newBudget) || 0;
-    setUserData({
-      ...userData,
-      monthlyBudget: budgetValue,
-    });
+    dispatch({ type: "SET_BUDGET", payload: budgetValue });
+
+    if (state.user) {
+      const updatedUser = {
+        ...state.user,
+        monthlyBudget: budgetValue,
+      };
+      dispatch({ type: "SET_USER", payload: updatedUser });
+    }
+
     setEditingBudget(false);
   };
 
@@ -74,13 +78,13 @@ const BudgetDisplay: React.FC = () => {
         ) : (
           <TouchableOpacity
             onPress={() => {
-              setNewBudget(userData.monthlyBudget.toString());
+              setNewBudget(state.budget.toString());
               setEditingBudget(true);
             }}
             style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
           >
             <Text style={{ color: colors.text, fontWeight: "700" }}>
-              R$ {userData.monthlyBudget.toFixed(2)}
+              R$ {state.budget.toFixed(2)}
             </Text>
             <Edit2 color={colors.muted} size={16} />
           </TouchableOpacity>
@@ -126,14 +130,9 @@ const BudgetDisplay: React.FC = () => {
         <View
           style={{
             height: "100%",
-            width: `${Math.min(
-              (totalSpent / userData.monthlyBudget) * 100,
-              100
-            )}%`,
+            width: `${Math.min((totalSpent / state.budget) * 100, 100)}%`,
             backgroundColor:
-              totalSpent > userData.monthlyBudget
-                ? colors.danger
-                : colors.success,
+              totalSpent > state.budget ? colors.danger : colors.success,
             borderRadius: 4,
           }}
         />

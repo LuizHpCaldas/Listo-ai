@@ -34,14 +34,12 @@ const ListDetailScreen: React.FC = () => {
   const navigation = useNavigation<ListDetailScreenNavigationProp>();
   const route = useRoute();
   const { listId } = route.params as { listId: string };
-  const { userData, setUserData, mode } = useApp();
+  const { state, dispatch } = useApp();
   const [newProductName, setNewProductName] = useState("");
   const [editingProduct, setEditingProduct] = useState<string | null>(null);
   const [editModalVisible, setEditModalVisible] = useState(false);
 
-  const list = userData.shoppingHistory.find(
-    (l: ShoppingList) => l.id === listId
-  );
+  const list = state.lists.find((l: ShoppingList) => l.id === listId);
 
   if (!list) {
     return (
@@ -88,12 +86,15 @@ const ListDetailScreen: React.FC = () => {
 
     updatedList.totalSpent = totalSpent;
 
-    setUserData({
-      ...userData,
-      shoppingHistory: userData.shoppingHistory.map((l: ShoppingList) =>
+    const updatedUser = {
+      ...state.user!,
+      shoppingHistory: state.user!.shoppingHistory.map((l: ShoppingList) =>
         l.id === listId ? updatedList : l
       ),
-    });
+    };
+
+    dispatch({ type: "SET_USER", payload: updatedUser });
+    dispatch({ type: "UPDATE_LIST", payload: updatedList });
   };
 
   const toggleItem = (itemId: string) => {
@@ -155,12 +156,15 @@ const ListDetailScreen: React.FC = () => {
               completedAt: new Date().toISOString(),
             };
 
-            setUserData({
-              ...userData,
-              shoppingHistory: userData.shoppingHistory.map((l: ShoppingList) =>
-                l.id === listId ? updatedList : l
+            const updatedUser = {
+              ...state.user!,
+              shoppingHistory: state.user!.shoppingHistory.map(
+                (l: ShoppingList) => (l.id === listId ? updatedList : l)
               ),
-            });
+            };
+
+            dispatch({ type: "SET_USER", payload: updatedUser });
+            dispatch({ type: "UPDATE_LIST", payload: updatedList });
 
             Alert.alert(
               "Lista Concluída!",
@@ -186,7 +190,6 @@ const ListDetailScreen: React.FC = () => {
       style={{ flex: 1, backgroundColor: colors.bg }}
       edges={["bottom"]}
     >
-      {/* Header */}
       <View
         style={{
           flexDirection: "row",
@@ -221,8 +224,7 @@ const ListDetailScreen: React.FC = () => {
         </View>
       </View>
 
-      {/* Modo Mercado Banner */}
-      {mode === "market" && !isCompleted && (
+      {state.mode === "market" && !isCompleted && (
         <View
           style={{
             backgroundColor: colors.warning + "20",
@@ -248,8 +250,7 @@ const ListDetailScreen: React.FC = () => {
         </View>
       )}
 
-      {/* Adicionar produto (só no modo casa e lista não concluída) */}
-      {mode === "home" && !isCompleted && (
+      {state.mode === "home" && !isCompleted && (
         <View
           style={{
             padding: 16,
@@ -294,7 +295,6 @@ const ListDetailScreen: React.FC = () => {
         </View>
       )}
 
-      {/* Lista de produtos */}
       <FlatList
         data={list.items}
         keyExtractor={(item: Product) => item.id}
@@ -318,7 +318,9 @@ const ListDetailScreen: React.FC = () => {
               <TouchableOpacity
                 onPress={() =>
                   !isCompleted &&
-                  (mode === "market" ? editItem(item.id) : toggleItem(item.id))
+                  (state.mode === "market"
+                    ? editItem(item.id)
+                    : toggleItem(item.id))
                 }
                 style={{
                   width: 24,
@@ -359,7 +361,7 @@ const ListDetailScreen: React.FC = () => {
               </View>
             </View>
 
-            {mode === "market" && !item.checked && !isCompleted && (
+            {state.mode === "market" && !item.checked && !isCompleted && (
               <TouchableOpacity
                 onPress={() => editItem(item.id)}
                 style={{ padding: 4 }}
@@ -381,7 +383,7 @@ const ListDetailScreen: React.FC = () => {
         ListEmptyComponent={
           <View style={{ alignItems: "center", padding: 40 }}>
             <Text style={{ color: colors.muted, textAlign: "center" }}>
-              {mode === "market"
+              {state.mode === "market"
                 ? "Nenhum produto para comprar. Volte para o modo Casa para adicionar itens."
                 : "Nenhum produto nesta lista. Adicione produtos acima."}
             </Text>
@@ -389,8 +391,7 @@ const ListDetailScreen: React.FC = () => {
         }
       />
 
-      {/* Botão Finalizar Compra */}
-      {mode === "market" && !isCompleted && allItemsChecked && (
+      {state.mode === "market" && !isCompleted && allItemsChecked && (
         <View
           style={{
             padding: 16,
@@ -419,7 +420,6 @@ const ListDetailScreen: React.FC = () => {
         </View>
       )}
 
-      {/* Status de Lista Concluída */}
       {isCompleted && (
         <View
           style={{
@@ -445,7 +445,6 @@ const ListDetailScreen: React.FC = () => {
         </View>
       )}
 
-      {/* Modal de edição */}
       <ProductEditModal
         visible={editModalVisible}
         productName={editingProductData?.name || ""}

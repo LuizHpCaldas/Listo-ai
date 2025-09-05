@@ -1,36 +1,103 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { UserData, ShoppingList, AppMode } from "../types";
 import { storage } from "../services/storage";
+import { monthlyReset } from "../services/monthlyReset";
+
+interface AppState {
+  user: UserData | null;
+  lists: ShoppingList[];
+  activeList: string | null;
+  mode: AppMode;
+  budget: number;
+}
+
+type AppAction =
+  | { type: "SET_USER"; payload: UserData }
+  | { type: "SET_LISTS"; payload: ShoppingList[] }
+  | { type: "ADD_LIST"; payload: ShoppingList }
+  | { type: "UPDATE_LIST"; payload: ShoppingList }
+  | { type: "DELETE_LIST"; payload: string }
+  | { type: "SET_ACTIVE_LIST"; payload: string | null }
+  | { type: "SET_MODE"; payload: AppMode }
+  | { type: "SET_BUDGET"; payload: number };
 
 interface AppContextType {
-  userData: UserData;
-  setUserData: (data: UserData) => void;
-  activeList: string | null;
-  setActiveList: (listId: string | null) => void;
-  mode: AppMode;
-  setMode: (mode: AppMode) => void;
-  refreshData: () => void;
+  state: AppState;
+  dispatch: React.Dispatch<AppAction>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+const appReducer = (state: AppState, action: AppAction): AppState => {
+  switch (action.type) {
+    case "SET_USER":
+      return { ...state, user: action.payload };
+    case "SET_LISTS":
+      return { ...state, lists: action.payload };
+    case "ADD_LIST":
+      return { ...state, lists: [action.payload, ...state.lists] };
+    case "UPDATE_LIST":
+      return {
+        ...state,
+        lists: state.lists.map((list) =>
+          list.id === action.payload.id ? action.payload : list
+        ),
+      };
+    case "DELETE_LIST":
+      return {
+        ...state,
+        lists: state.lists.filter((list) => list.id !== action.payload),
+      };
+    case "SET_ACTIVE_LIST":
+      return { ...state, activeList: action.payload };
+    case "SET_MODE":
+      return { ...state, mode: action.payload };
+    case "SET_BUDGET":
+      return { ...state, budget: action.payload };
+    default:
+      return state;
+  }
+};
+
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [userData, setUserData] = useState<UserData>({
-    monthlyBudget: 700,
-    shoppingHistory: [],
+  const [state, dispatch] = React.useReducer(appReducer, {
+    user: null,
+    lists: [],
+    activeList: null,
+    mode: "home",
+    budget: 700,
   });
-  const [activeList, setActiveList] = useState<string | null>(null);
-  const [mode, setMode] = useState<AppMode>("home");
 
   const loadUserData = async () => {
     try {
-      const data = await storage.getUserData();
-      if (data) {
-        setUserData(data);
-        if (data.shoppingHistory.length > 0) {
-          setActiveList(data.shoppingHistory[0].id);
+      const resetData = await monthlyReset.checkAndReset();
+
+      if (resetData) {
+        dispatch({ type: "SET_USER", payload: resetData });
+        dispatch({ type: "SET_LISTS", payload: resetData.shoppingHistory });
+        dispatch({ type: "SET_BUDGET", payload: resetData.monthlyBudget });
+
+        if (resetData.shoppingHistory.length > 0) {
+          dispatch({
+            type: "SET_ACTIVE_LIST",
+            payload: resetData.shoppingHistory[0].id,
+          });
+        }
+      } else {
+        const userData = await storage.getUserData();
+        if (userData) {
+          dispatch({ type: "SET_USER", payload: userData });
+          dispatch({ type: "SET_LISTS", payload: userData.shoppingHistory });
+          dispatch({ type: "SET_BUDGET", payload: userData.monthlyBudget });
+
+          if (userData.shoppingHistory.length > 0) {
+            dispatch({
+              type: "SET_ACTIVE_LIST",
+              payload: userData.shoppingHistory[0].id,
+            });
+          }
         }
       }
     } catch (error) {
@@ -38,30 +105,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  const refreshData = () => {
-    loadUserData();
-  };
-
   useEffect(() => {
     loadUserData();
   }, []);
 
   useEffect(() => {
-    storage.saveUserData(userData);
-  }, [userData]);
+    if (state.user) {
+      storage.saveUserData(state.user);
+    }
+  }, [state.user]);
 
   return (
-    <AppContext.Provider
-      value={{
-        userData,
-        setUserData,
-        activeList,
-        setActiveList,
-        mode,
-        setMode,
-        refreshData,
-      }}
-    >
+    <AppContext.Provider value={{ state, dispatch }}>
       {children}
     </AppContext.Provider>
   );
