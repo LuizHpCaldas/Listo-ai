@@ -106,7 +106,7 @@ const HomeScreen: React.FC = () => {
               >
                 Listo
               </Text>
-              <Text style={{ color: colors.muted }}>Smart Shopping Lists</Text>
+              <Text style={{ color: colors.muted }}>Smart </Text>
             </View>
           </View>
 
