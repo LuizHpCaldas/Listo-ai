@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 import { Trash2, Check } from "lucide-react-native";
 import { ShoppingList } from "../../types";
 import { colors } from "../../constants/colors";
@@ -19,12 +20,19 @@ const ListCard: React.FC<ListCardProps> = ({
   onDelete,
   showDelete = true,
 }) => {
+  const navigation = useNavigation();
   const itemsInCart = list.items.filter((item) => item.checked).length;
   const isCompleted = !!list.completedAt;
 
+  const handlePress = () => {
+    onPress();
+    // Navegar para a tela de detalhes
+    navigation.navigate("ListDetail", { listId: list.id });
+  };
+
   return (
     <TouchableOpacity
-      onPress={onPress}
+      onPress={handlePress}
       style={{
         backgroundColor: colors.card,
         borderWidth: 2,
