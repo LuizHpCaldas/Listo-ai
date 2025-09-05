@@ -7,9 +7,9 @@ import {
   FlatList,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Plus, Home, Store, BarChart3 } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { Plus, Home, Store, BarChart3 } from "lucide-react-native";
 import { useApp } from "../../contexts/AppContext";
 import { ShoppingList } from "../../types";
 import { RootStackParamList } from "../../types/navigation";
@@ -49,7 +49,9 @@ const HomeScreen: React.FC = () => {
       setShowNewList(false);
       setActiveList(newList.id);
 
-      navigation.navigate("ListDetail", { listId: newList.id });
+      if (mode === "market") {
+        navigation.navigate("ListDetail", { listId: newList.id });
+      }
     }
   };
 
@@ -57,7 +59,7 @@ const HomeScreen: React.FC = () => {
     setUserData({
       ...userData,
       shoppingHistory: userData.shoppingHistory.filter(
-        (list) => list.id !== listId
+        (list: ShoppingList) => list.id !== listId
       ),
     });
 
@@ -72,7 +74,10 @@ const HomeScreen: React.FC = () => {
 
   const handleListPress = (listId: string) => {
     setActiveList(listId);
-    navigation.navigate("ListDetail", { listId });
+
+    if (mode === "market") {
+      navigation.navigate("ListDetail", { listId });
+    }
   };
 
   const handleModePress = (newMode: "home" | "market" | "analytics") => {
@@ -80,8 +85,19 @@ const HomeScreen: React.FC = () => {
 
     if (newMode === "analytics") {
       navigation.navigate("Analytics");
+    } else if (newMode === "market" && activeList) {
+      navigation.navigate("ListDetail", { listId: activeList });
     }
   };
+
+  const totalSpent = userData.shoppingHistory.reduce(
+    (total: number, list: ShoppingList) => {
+      return total + list.totalSpent;
+    },
+    0
+  );
+
+  const remaining = userData.monthlyBudget - totalSpent;
 
   return (
     <SafeAreaView
@@ -99,15 +115,7 @@ const HomeScreen: React.FC = () => {
           }}
         >
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-            <Logo size={40} />
-            <View>
-              <Text
-                style={{ color: colors.text, fontSize: 24, fontWeight: "bold" }}
-              >
-                Listo
-              </Text>
-              <Text style={{ color: colors.muted }}>Smart </Text>
-            </View>
+            <Logo size={42} showText={true} />
           </View>
 
           <View
@@ -195,9 +203,34 @@ const HomeScreen: React.FC = () => {
           </View>
         </View>
 
+        {mode === "market" && (
+          <View
+            style={{
+              backgroundColor: colors.warning + "20",
+              padding: 12,
+              borderRadius: 12,
+              borderLeftWidth: 4,
+              borderLeftColor: colors.warning,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 8,
+              marginBottom: 16,
+            }}
+          >
+            <Store color={colors.warning} size={20} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: colors.text, fontWeight: "600" }}>
+                Modo Mercado Ativo
+              </Text>
+              <Text style={{ color: colors.muted, fontSize: 12 }}>
+                Clique em uma lista para gerenciar compras e preços
+              </Text>
+            </View>
+          </View>
+        )}
+
         <BudgetDisplay />
 
-        {/* Listas */}
         <View
           style={{
             flexDirection: "row",
@@ -209,19 +242,21 @@ const HomeScreen: React.FC = () => {
           <Text style={{ color: colors.text, fontSize: 18, fontWeight: "600" }}>
             Minhas Listas
           </Text>
-          <TouchableOpacity
-            onPress={() => setShowNewList(true)}
-            style={{
-              backgroundColor: colors.primary,
-              padding: 8,
-              borderRadius: 8,
-            }}
-          >
-            <Plus color="#fff" size={20} />
-          </TouchableOpacity>
+          {mode === "home" && (
+            <TouchableOpacity
+              onPress={() => setShowNewList(true)}
+              style={{
+                backgroundColor: colors.primary,
+                padding: 8,
+                borderRadius: 8,
+              }}
+            >
+              <Plus color="#fff" size={20} />
+            </TouchableOpacity>
+          )}
         </View>
 
-        {showNewList && (
+        {showNewList && mode === "home" && (
           <View
             style={{
               backgroundColor: colors.card,
@@ -272,6 +307,7 @@ const HomeScreen: React.FC = () => {
               isActive={activeList === item.id}
               onPress={() => handleListPress(item.id)}
               onDelete={() => deleteList(item.id)}
+              showDelete={mode === "home"}
             />
           )}
           ListEmptyComponent={
@@ -283,12 +319,77 @@ const HomeScreen: React.FC = () => {
               }}
             >
               <Text style={{ color: colors.muted, textAlign: "center" }}>
-                Nenhuma lista criada ainda. Clique no + para criar sua primeira
-                lista.
+                {mode === "market"
+                  ? "Nenhuma lista disponível. Volte para o modo Casa para criar listas."
+                  : "Nenhuma lista criada ainda. Clique no + para criar sua primeira lista."}
               </Text>
             </View>
           }
         />
+
+        <View
+          style={{
+            backgroundColor: colors.card,
+            padding: 16,
+            borderRadius: 16,
+            marginTop: 16,
+            borderLeftWidth: 4,
+            borderLeftColor: remaining >= 0 ? colors.success : colors.danger,
+          }}
+        >
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <Text style={{ color: colors.muted }}>Saldo Total</Text>
+            <Text
+              style={{
+                color: remaining >= 0 ? colors.success : colors.danger,
+                fontWeight: "700",
+                fontSize: 16,
+              }}
+            >
+              R$ {remaining.toFixed(2)}
+            </Text>
+          </View>
+          <View
+            style={{
+              height: 6,
+              backgroundColor: colors.border,
+              borderRadius: 3,
+              marginTop: 8,
+              overflow: "hidden",
+            }}
+          >
+            <View
+              style={{
+                height: "100%",
+                width: `${Math.min(
+                  (totalSpent / userData.monthlyBudget) * 100,
+                  100
+                )}%`,
+                backgroundColor:
+                  totalSpent > userData.monthlyBudget
+                    ? colors.danger
+                    : colors.success,
+              }}
+            />
+          </View>
+          <Text
+            style={{
+              color: colors.muted,
+              fontSize: 12,
+              marginTop: 4,
+              textAlign: "center",
+            }}
+          >
+            Gasto: R$ {totalSpent.toFixed(2)} / Orçamento: R${" "}
+            {userData.monthlyBudget.toFixed(2)}
+          </Text>
+        </View>
       </View>
     </SafeAreaView>
   );

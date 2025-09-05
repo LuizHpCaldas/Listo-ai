@@ -9,10 +9,11 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { Plus, Check, X, ArrowLeft } from "lucide-react-native";
+import { Plus, Check, X, ArrowLeft, Store, Edit3 } from "lucide-react-native";
 import { useApp } from "../../contexts/AppContext";
 import { RootStackParamList } from "../../types/navigation";
 import { colors } from "../../constants/colors";
+import ProductEditModal from "../../components/Product/ProductEditModal";
 
 type ListDetailScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -23,8 +24,10 @@ const ListDetailScreen: React.FC = () => {
   const navigation = useNavigation<ListDetailScreenNavigationProp>();
   const route = useRoute();
   const { listId } = route.params as { listId: string };
-  const { userData, setUserData } = useApp();
+  const { userData, setUserData, mode } = useApp();
   const [newProductName, setNewProductName] = useState("");
+  const [editingProduct, setEditingProduct] = useState<string | null>(null);
+  const [editModalVisible, setEditModalVisible] = useState(false);
 
   const list = userData.shoppingHistory.find((l) => l.id === listId);
 
@@ -46,6 +49,7 @@ const ListDetailScreen: React.FC = () => {
         id: Date.now().toString(),
         name: newProductName.trim(),
         price: undefined,
+        quantity: 1, // Quantidade padrão
         checked: false,
         addedAt: new Date().toISOString(),
       };
@@ -55,15 +59,27 @@ const ListDetailScreen: React.FC = () => {
         items: [...list.items, newItem],
       };
 
-      setUserData({
-        ...userData,
-        shoppingHistory: userData.shoppingHistory.map((l) =>
-          l.id === listId ? updatedList : l
-        ),
-      });
-
+      updateList(updatedList);
       setNewProductName("");
     }
+  };
+
+  const updateList = (updatedList: any) => {
+    // Calcular total gasto
+    const totalSpent = updatedList.items.reduce((total: number, item: any) => {
+      return item.checked && item.price
+        ? total + item.price * item.quantity
+        : total;
+    }, 0);
+
+    updatedList.totalSpent = totalSpent;
+
+    setUserData({
+      ...userData,
+      shoppingHistory: userData.shoppingHistory.map((l) =>
+        l.id === listId ? updatedList : l
+      ),
+    });
   };
 
   const toggleItem = (itemId: string) => {
@@ -74,12 +90,7 @@ const ListDetailScreen: React.FC = () => {
       ),
     };
 
-    setUserData({
-      ...userData,
-      shoppingHistory: userData.shoppingHistory.map((l) =>
-        l.id === listId ? updatedList : l
-      ),
-    });
+    updateList(updatedList);
   };
 
   const removeItem = (itemId: string) => {
@@ -88,16 +99,36 @@ const ListDetailScreen: React.FC = () => {
       items: list.items.filter((item) => item.id !== itemId),
     };
 
-    setUserData({
-      ...userData,
-      shoppingHistory: userData.shoppingHistory.map((l) =>
-        l.id === listId ? updatedList : l
-      ),
-    });
+    updateList(updatedList);
+  };
+
+  const editItem = (itemId: string) => {
+    setEditingProduct(itemId);
+    setEditModalVisible(true);
+  };
+
+  const handleSaveEdit = (price: number, quantity: number) => {
+    if (editingProduct) {
+      const updatedList = {
+        ...list,
+        items: list.items.map((item) =>
+          item.id === editingProduct
+            ? { ...item, price, quantity, checked: true }
+            : item
+        ),
+      };
+
+      updateList(updatedList);
+      setEditModalVisible(false);
+      setEditingProduct(null);
+    }
   };
 
   const itemsInCart = list.items.filter((item) => item.checked).length;
   const totalItems = list.items.length;
+  const editingProductData = list.items.find(
+    (item) => item.id === editingProduct
+  );
 
   return (
     <SafeAreaView
@@ -133,49 +164,78 @@ const ListDetailScreen: React.FC = () => {
         </View>
       </View>
 
-      {/* Adicionar produto */}
-      <View
-        style={{
-          padding: 16,
-          backgroundColor: colors.card,
-          margin: 16,
-          borderRadius: 12,
-        }}
-      >
-        <Text
-          style={{ color: colors.text, fontWeight: "600", marginBottom: 12 }}
+      {/* Modo Mercado Banner */}
+      {mode === "market" && (
+        <View
+          style={{
+            backgroundColor: colors.warning + "20",
+            padding: 12,
+            margin: 16,
+            borderRadius: 12,
+            borderLeftWidth: 4,
+            borderLeftColor: colors.warning,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 8,
+          }}
         >
-          Adicionar produto
-        </Text>
-        <View style={{ flexDirection: "row", gap: 12 }}>
-          <TextInput
-            placeholder="Nome do produto"
-            placeholderTextColor={colors.muted}
-            value={newProductName}
-            onChangeText={setNewProductName}
-            style={{
-              flex: 1,
-              backgroundColor: colors.border,
-              padding: 12,
-              borderRadius: 8,
-              color: colors.text,
-            }}
-            onSubmitEditing={addProduct}
-          />
-          <TouchableOpacity
-            onPress={addProduct}
-            style={{
-              backgroundColor: colors.primary,
-              padding: 12,
-              borderRadius: 8,
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
-            <Plus color="#fff" size={20} />
-          </TouchableOpacity>
+          <Store color={colors.warning} size={20} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: colors.text, fontWeight: "600" }}>
+              Modo Mercado Ativo
+            </Text>
+            <Text style={{ color: colors.muted, fontSize: 12 }}>
+              Toque nos itens para adicionar preço e quantidade
+            </Text>
+          </View>
         </View>
-      </View>
+      )}
+
+      {/* Adicionar produto (só no modo casa) */}
+      {mode === "home" && (
+        <View
+          style={{
+            padding: 16,
+            backgroundColor: colors.card,
+            margin: 16,
+            borderRadius: 12,
+          }}
+        >
+          <Text
+            style={{ color: colors.text, fontWeight: "600", marginBottom: 12 }}
+          >
+            Adicionar produto
+          </Text>
+          <View style={{ flexDirection: "row", gap: 12 }}>
+            <TextInput
+              placeholder="Nome do produto"
+              placeholderTextColor={colors.muted}
+              value={newProductName}
+              onChangeText={setNewProductName}
+              style={{
+                flex: 1,
+                backgroundColor: colors.border,
+                padding: 12,
+                borderRadius: 8,
+                color: colors.text,
+              }}
+              onSubmitEditing={addProduct}
+            />
+            <TouchableOpacity
+              onPress={addProduct}
+              style={{
+                backgroundColor: colors.primary,
+                padding: 12,
+                borderRadius: 8,
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              <Plus color="#fff" size={20} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
 
       {/* Lista de produtos */}
       <FlatList
@@ -198,7 +258,9 @@ const ListDetailScreen: React.FC = () => {
               style={{ flexDirection: "row", alignItems: "center", flex: 1 }}
             >
               <TouchableOpacity
-                onPress={() => toggleItem(item.id)}
+                onPress={() =>
+                  mode === "market" ? editItem(item.id) : toggleItem(item.id)
+                }
                 style={{
                   width: 24,
                   height: 24,
@@ -216,20 +278,39 @@ const ListDetailScreen: React.FC = () => {
                 {item.checked && <Check color="#fff" size={16} />}
               </TouchableOpacity>
 
-              <Text
-                style={{
-                  color: item.checked ? colors.muted : colors.text,
-                  flex: 1,
-                  textDecorationLine: item.checked ? "line-through" : "none",
-                }}
-              >
-                {item.name}
-              </Text>
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={{
+                    color: item.checked ? colors.muted : colors.text,
+                    textDecorationLine: item.checked ? "line-through" : "none",
+                  }}
+                >
+                  {item.name}
+                </Text>
+
+                {item.checked && item.price && (
+                  <Text
+                    style={{ color: colors.muted, fontSize: 12, marginTop: 4 }}
+                  >
+                    {item.quantity}x • R$ {item.price.toFixed(2)} = R${" "}
+                    {(item.price * item.quantity).toFixed(2)}
+                  </Text>
+                )}
+              </View>
             </View>
+
+            {mode === "market" && !item.checked && (
+              <TouchableOpacity
+                onPress={() => editItem(item.id)}
+                style={{ padding: 4 }}
+              >
+                <Edit3 color={colors.primary} size={20} />
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity
               onPress={() => removeItem(item.id)}
-              style={{ padding: 4 }}
+              style={{ padding: 4, marginLeft: 8 }}
             >
               <X color={colors.danger} size={20} />
             </TouchableOpacity>
@@ -238,10 +319,25 @@ const ListDetailScreen: React.FC = () => {
         ListEmptyComponent={
           <View style={{ alignItems: "center", padding: 40 }}>
             <Text style={{ color: colors.muted, textAlign: "center" }}>
-              Nenhum produto nesta lista. Adicione produtos acima.
+              {mode === "market"
+                ? "Nenhum produto para comprar. Volte para o modo Casa para adicionar itens."
+                : "Nenhum produto nesta lista. Adicione produtos acima."}
             </Text>
           </View>
         }
+      />
+
+      {/* Modal de edição */}
+      <ProductEditModal
+        visible={editModalVisible}
+        productName={editingProductData?.name || ""}
+        currentPrice={editingProductData?.price}
+        currentQuantity={editingProductData?.quantity || 1}
+        onSave={handleSaveEdit}
+        onCancel={() => {
+          setEditModalVisible(false);
+          setEditingProduct(null);
+        }}
       />
     </SafeAreaView>
   );
