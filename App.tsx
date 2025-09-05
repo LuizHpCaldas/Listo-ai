@@ -1,6 +1,6 @@
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { AppProvider } from "./src/contexts/AppContext";
 import HomeScreen from "./src/screens/Home/HomeScreen";
 import ListDetailScreen from "./src/screens/ListDetail/ListDetailScreen";
