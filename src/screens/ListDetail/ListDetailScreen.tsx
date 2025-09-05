@@ -5,11 +5,20 @@ import {
   TextInput,
   TouchableOpacity,
   FlatList,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { Plus, Check, X, ArrowLeft, Store, Edit3 } from "lucide-react-native";
+import {
+  Plus,
+  Check,
+  X,
+  ArrowLeft,
+  Store,
+  Edit3,
+  ShoppingBag,
+} from "lucide-react-native";
 import { useApp } from "../../contexts/AppContext";
 import { RootStackParamList } from "../../types/navigation";
 import { ShoppingList, Product } from "../../types";
@@ -68,7 +77,6 @@ const ListDetailScreen: React.FC = () => {
   };
 
   const updateList = (updatedList: ShoppingList) => {
-    // Calcular total gasto
     const totalSpent = updatedList.items.reduce(
       (total: number, item: Product) => {
         return item.checked && item.price
@@ -130,11 +138,48 @@ const ListDetailScreen: React.FC = () => {
     }
   };
 
+  const completeList = () => {
+    Alert.alert(
+      "Finalizar Compra",
+      `Deseja marcar a lista "${list.name}" como concluída?`,
+      [
+        {
+          text: "Cancelar",
+          style: "cancel",
+        },
+        {
+          text: "Finalizar",
+          onPress: () => {
+            const updatedList = {
+              ...list,
+              completedAt: new Date().toISOString(),
+            };
+
+            setUserData({
+              ...userData,
+              shoppingHistory: userData.shoppingHistory.map((l: ShoppingList) =>
+                l.id === listId ? updatedList : l
+              ),
+            });
+
+            Alert.alert(
+              "Lista Concluída!",
+              `Compra de ${list.name} finalizada com sucesso!`,
+              [{ text: "OK", onPress: () => navigation.goBack() }]
+            );
+          },
+        },
+      ]
+    );
+  };
+
   const itemsInCart = list.items.filter((item: Product) => item.checked).length;
   const totalItems = list.items.length;
+  const allItemsChecked = itemsInCart === totalItems && totalItems > 0;
   const editingProductData = list.items.find(
     (item: Product) => item.id === editingProduct
   );
+  const isCompleted = !!list.completedAt;
 
   return (
     <SafeAreaView
@@ -167,11 +212,17 @@ const ListDetailScreen: React.FC = () => {
           <Text style={{ color: colors.muted }}>
             {itemsInCart}/{totalItems} itens • R$ {list.totalSpent.toFixed(2)}
           </Text>
+          {isCompleted && (
+            <Text style={{ color: colors.success, fontSize: 12, marginTop: 2 }}>
+              ✓ Concluída em{" "}
+              {new Date(list.completedAt!).toLocaleDateString("pt-BR")}
+            </Text>
+          )}
         </View>
       </View>
 
       {/* Modo Mercado Banner */}
-      {mode === "market" && (
+      {mode === "market" && !isCompleted && (
         <View
           style={{
             backgroundColor: colors.warning + "20",
@@ -197,8 +248,8 @@ const ListDetailScreen: React.FC = () => {
         </View>
       )}
 
-      {/* Adicionar produto (só no modo casa) */}
-      {mode === "home" && (
+      {/* Adicionar produto (só no modo casa e lista não concluída) */}
+      {mode === "home" && !isCompleted && (
         <View
           style={{
             padding: 16,
@@ -258,6 +309,7 @@ const ListDetailScreen: React.FC = () => {
               backgroundColor: colors.card,
               borderRadius: 12,
               marginBottom: 8,
+              opacity: isCompleted ? 0.7 : 1,
             }}
           >
             <View
@@ -265,7 +317,8 @@ const ListDetailScreen: React.FC = () => {
             >
               <TouchableOpacity
                 onPress={() =>
-                  mode === "market" ? editItem(item.id) : toggleItem(item.id)
+                  !isCompleted &&
+                  (mode === "market" ? editItem(item.id) : toggleItem(item.id))
                 }
                 style={{
                   width: 24,
@@ -280,6 +333,7 @@ const ListDetailScreen: React.FC = () => {
                   alignItems: "center",
                   marginRight: 12,
                 }}
+                disabled={isCompleted}
               >
                 {item.checked && <Check color="#fff" size={16} />}
               </TouchableOpacity>
@@ -305,7 +359,7 @@ const ListDetailScreen: React.FC = () => {
               </View>
             </View>
 
-            {mode === "market" && !item.checked && (
+            {mode === "market" && !item.checked && !isCompleted && (
               <TouchableOpacity
                 onPress={() => editItem(item.id)}
                 style={{ padding: 4 }}
@@ -314,12 +368,14 @@ const ListDetailScreen: React.FC = () => {
               </TouchableOpacity>
             )}
 
-            <TouchableOpacity
-              onPress={() => removeItem(item.id)}
-              style={{ padding: 4, marginLeft: 8 }}
-            >
-              <X color={colors.danger} size={20} />
-            </TouchableOpacity>
+            {!isCompleted && (
+              <TouchableOpacity
+                onPress={() => removeItem(item.id)}
+                style={{ padding: 4, marginLeft: 8 }}
+              >
+                <X color={colors.danger} size={20} />
+              </TouchableOpacity>
+            )}
           </View>
         )}
         ListEmptyComponent={
@@ -332,6 +388,62 @@ const ListDetailScreen: React.FC = () => {
           </View>
         }
       />
+
+      {/* Botão Finalizar Compra */}
+      {mode === "market" && !isCompleted && allItemsChecked && (
+        <View
+          style={{
+            padding: 16,
+            backgroundColor: colors.card,
+            borderTopWidth: 1,
+            borderTopColor: colors.border,
+          }}
+        >
+          <TouchableOpacity
+            onPress={completeList}
+            style={{
+              backgroundColor: colors.success,
+              padding: 16,
+              borderRadius: 12,
+              alignItems: "center",
+              flexDirection: "row",
+              justifyContent: "center",
+              gap: 8,
+            }}
+          >
+            <ShoppingBag color="#fff" size={20} />
+            <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}>
+              Finalizar Compra
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Status de Lista Concluída */}
+      {isCompleted && (
+        <View
+          style={{
+            padding: 16,
+            backgroundColor: colors.success + "20",
+            margin: 16,
+            borderRadius: 12,
+            alignItems: "center",
+          }}
+        >
+          <Check color={colors.success} size={24} />
+          <Text
+            style={{ color: colors.success, fontWeight: "bold", marginTop: 8 }}
+          >
+            Lista Concluída
+          </Text>
+          <Text
+            style={{ color: colors.muted, textAlign: "center", marginTop: 4 }}
+          >
+            Esta lista foi finalizada em{" "}
+            {new Date(list.completedAt!).toLocaleDateString("pt-BR")}
+          </Text>
+        </View>
+      )}
 
       {/* Modal de edição */}
       <ProductEditModal
