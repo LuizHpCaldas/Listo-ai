@@ -248,7 +248,7 @@ detalhes.
 
 ------------------------------------------------------------------------
 
-::: {align="center"}
+:::
 ⭐️ Se este projeto te ajudou, deixe uma star no repositório!
 
 Desenvolvido com ❤️ usando React Native e TypeScript
